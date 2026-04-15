@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuitos Elétricos // LEANDRO MARETHI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;800&family=Space+Grotesk:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --accent: #7000ff;
+            --bg: #020202;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #fff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Mouse VFX */
+        #cursor {
+            width: 10px; height: 10px; background: #fff;
+            position: fixed; border-radius: 50%;
+            z-index: 10000; pointer-events: none;
+            box-shadow: 0 0 20px #fff;
+        }
+        #cursor-ring {
+            width: 45px; height: 45px;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            position: fixed; border-radius: 50%;
+            z-index: 9999; pointer-events: none;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* 3D Background */
+        #vfx-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 6rem 10%;
+            position: relative;
+        }
+
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 40px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .hero-title {
+            font-size: clamp(3rem, 15vw, 12rem);
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 40px rgba(0, 242, 255, 0.6);
+        }
+
+        /* Nav Indicators */
+        .nav-progress {
+            position: fixed; left: 40px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 20px; z-index: 1000;
+        }
+        .nav-step {
+            width: 3px; height: 30px; background: rgba(255,255,255,0.1);
+            transition: 0.4s;
+        }
+        .nav-step.active { background: var(--primary); height: 60px; box-shadow: 0 0 15px var(--primary); }
+
+        /* Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%; height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px; height: 20px;
+            background: #fff;
+            border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        /* PhET Style Experiments */
+        .phet-container {
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .electron {
+            fill: var(--primary);
+            filter: drop-shadow(0 0 8px var(--primary));
+        }
+
+        .wire {
+            stroke: #334155;
+            stroke-width: 6;
+            fill: none;
+            stroke-linecap: round;
+        }
+
+        .wire.active {
+            stroke: #475569;
+        }
+
+        .bulb-svg {
+            transition: all 0.3s ease;
+        }
+        .bulb-on {
+            fill: #fbbf24;
+            filter: drop-shadow(0 0 40px #fbbf24);
+        }
+
+        .signature {
+            position: fixed; bottom: 30px; left: 30px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.5em;
+            color: var(--primary); z-index: 1000; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cursor"></div>
+    <div id="cursor-ring"></div>
+    <div id="vfx-canvas"></div>
+    
+    <div class="nav-progress" id="navSteps"></div>
+    <div class="signature">Todos direitos reservados para Leandro Marethi</div>
+
+    <main id="main">
+        
+        <!-- 01: CAPA -->
+        <section>
+            <div class="text-center">
+                <p class="text-[10px] tracking-[1.5em] mb-8 opacity-40 uppercase">Apresentação // Ciências 8º Ano</p>
+                <h1 class="hero-title glow-text">CIRCUITOS<br><span class="text-transparent" style="-webkit-text-stroke: 1.5px #fff">ELÉTRICOS</span></h1>
+                <div class="mt-20 opacity-20 animate-bounce">Desça para a Experiência</div>
+            </div>
+        </section>
+
+        <!-- 02: INTRODUÇÃO -->
+        <section>
+            <div class="max-w-4xl text-center">
+                <h2 class="text-6xl font-extrabold mb-10 tracking-tighter">O QUE É UM CIRCUITO?</h2>
+                <p class="text-2xl font-light leading-relaxed opacity-60">
+                    Não pense apenas em fios. Pense em um <span class="text-white font-bold">fluxo infinito</span>. Um circuito elétrico é o caminho completo por onde a energia viaja para realizar um trabalho, como acender uma luz ou ligar um videogame.
+                </p>
+            </div>
+        </section>
+
+        <!-- 03: EXP 1: O CIRCUITO VIVO -->
+        <section>
+            <div class="glass w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+                <div>
+                    <h3 class="text-primary font-bold text-xs tracking-widest mb-6 uppercase">Simulador 01: O Loop</h3>
+                    <h2 class="text-5xl font-bold mb-8 italic">O Caminho Fechado</h2>
+                    <p class="opacity-50 mb-10 leading-loose">A energia precisa de um caminho sem interrupções. Clique no interruptor para fechar o circuito e veja os elétrons ganharem vida.</p>
+                    <button onclick="toggleLoop()" class="px-10 py-4 border border-primary rounded-full text-[10px] font-bold tracking-widest hover:bg-primary hover:text-black transition-all uppercase">Acionar Interruptor</button>
+                </div>
+                <div class="phet-container flex items-center justify-center">
+                    <svg viewBox="0 0 400 240" class="w-full h-auto">
+                        <!-- Fios -->
+                        <path id="circuit-wire" d="M 60 120 L 60 40 L 340 40 L 340 120 M 60 120 L 340 120" class="wire" />
+                        <!-- Elétrons -->
+                        <circle class="electron op-0" r="5" id="e1" />
+                        <circle class="electron op-0" r="5" id="e2" />
+                        <circle class="electron op-0" r="5" id="e3" />
+                        <!-- Bateria -->
+                        <rect x="40" y="100" width="40" height="40" fill="#3b82f6" rx="4" />
+                        <text x="60" y="125" fill="white" font-size="10" text-anchor="middle" font-weight="bold">9V</text>
+                        <!-- Lâmpada -->
+                        <path id="bulb-svg" class="bulb-svg" d="M340 100c-11 0-20 9-20 20s9 20 20 20 20-9 20-20-9-20-20-20z" fill="#444" />
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- 04: COMPONENTES -->
+        <section>
+            <h2 class="text-xs tracking-[1em] opacity-30 mb-20 uppercase text-center">Peças Fundamentais</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
+                <div class="glass p-12 text-center hover:scale-105 transition">
+                    <div class="text-5xl mb-6">🔋</div>
+                    <h4 class="font-bold mb-4 tracking-widest uppercase text-xs">Fonte de Energia</h4>
+                    <p class="text-sm opacity-40">É quem "empurra" os elétrons. Pode ser uma pilha, bateria ou tomada.</p>
+                </div>
+                <div class="glass p-12 text-center border-primary/20 hover:scale-105 transition">
+                    <div class="text-5xl mb-6">➰</div>
+                    <h4 class="font-bold mb-4 tracking-widest uppercase text-xs">Condutores</h4>
+                    <p class="text-sm opacity-40">Geralmente fios de cobre. São as estradas para a energia passar.</p>
+                </div>
+                <div class="glass p-12 text-center hover:scale-105 transition">
+                    <div class="text-5xl mb-6">💡</div>
+                    <h4 class="font-bold mb-4 tracking-widest uppercase text-xs">Carga</h4>
+                    <p class="text-sm opacity-40">O aparelho que recebe a energia e a transforma (luz, som, calor).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 05: TENSÃO (A PRESSÃO) -->
+        <section>
+            <div class="max-w-4xl text-center">
+                <h2 class="text-7xl font-bold mb-8 tracking-tighter">TENSÃO <span class="text-primary">(V)</span></h2>
+                <p class="text-2xl font-light leading-relaxed opacity-60">
+                    Imagine a água saindo de uma mangueira. A tensão é a <span class="text-white font-bold">pressão</span>. Quanto maior a pressão, mais força os elétrons têm para viajar. Medimos em <span class="text-primary font-bold">Volts</span>.
+                </p>
+            </div>
+        </section>
+
+        <!-- 06: CORRENTE (O FLUXO) -->
+        <section>
+            <div class="max-w-4xl text-center">
+                <h2 class="text-7xl font-bold mb-8 tracking-tighter">CORRENTE <span class="text-primary">(I)</span></h2>
+                <p class="text-2xl font-light leading-relaxed opacity-60">
+                    É a <span class="text-white font-bold">quantidade</span> de energia que está passando a cada segundo. Se a mangueira é grossa e passa muita água, a corrente é alta. Medimos em <span class="text-primary font-bold">Ampères</span>.
+                </p>
+            </div>
+        </section>
+
+        <!-- 07: RESISTÊNCIA (O FREIO) -->
+        <section>
+            <div class="max-w-4xl text-center">
+                <h2 class="text-7xl font-bold mb-8 tracking-tighter">RESISTÊNCIA <span class="text-primary">(R)</span></h2>
+                <p class="text-2xl font-light leading-relaxed opacity-60">
+                    É o <span class="text-white font-bold">obstáculo</span>. Alguns materiais dificultam a passagem dos elétrons. Isso gera calor ou luz. Medimos em <span class="text-primary font-bold">Ohms</span>.
+                </p>
+            </div>
+        </section>
+
+        <!-- 08: EXP 2: LABORATÓRIO DE OHM -->
+        <section>
+            <div class="glass w-full max-w-6xl border-primary/20">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+                    <div class="space-y-12">
+                        <h2 class="text-3xl font-bold tracking-tighter">LAB_OHM // INTERATIVO</h2>
+                        <div>
+                            <div class="flex justify-between text-[10px] opacity-40 mb-4 uppercase tracking-[0.3em]"><span>Pressão (Tensão)</span><span id="v-val">60V</span></div>
+                            <input type="range" id="v-in" min="1" max="120" value="60">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] opacity-40 mb-4 uppercase tracking-[0.3em]"><span>Obstáculo (Resistência)</span><span id="r-val">30Ω</span></div>
+                            <input type="range" id="r-in" min="1" max="100" value="30">
+                        </div>
+                    </div>
+                    <div class="text-center p-12 bg-black/40 rounded-[40px] border border-white/5 relative overflow-hidden">
+                        <div id="vfx-glow" class="absolute inset-0 bg-primary/10 blur-[120px] opacity-0"></div>
+                        <p class="text-[10px] opacity-30 mb-6 uppercase tracking-widest">Fluxo de Energia</p>
+                        <div class="text-[10rem] font-black leading-none text-transparent" style="-webkit-text-stroke: 1px #fff" id="i-val">2.0</div>
+                        <p class="text-primary font-bold text-xs mt-6 tracking-[1em]">AMPERES</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 09: CONDUTORES VS ISOLANTES -->
+        <section>
+            <div class="max-w-4xl text-center">
+                <h2 class="text-6xl font-extrabold mb-10 tracking-tighter">QUEM DEIXA PASSAR?</h2>
+                <p class="text-2xl font-light leading-relaxed opacity-60">
+                    Materiais como <span class="text-white">Cobre e Ouro</span> são condutores: os elétrons viajam neles como se fosse uma pista livre. Já o <span class="text-white">Plástico e a Borracha</span> são isolantes: eles bloqueiam tudo para nos manter seguros.
+                </p>
+            </div>
+        </section>
+
+        <!-- 10: EXP 3: SCANNER DE MATERIAIS -->
+        <section>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
+                <div class="glass p-10 text-center cursor-pointer group hover:border-primary" onclick="scan('COBRE', 'CONDUTOR', '#00f2ff')">
+                    <div class="text-5xl mb-6 group-hover:scale-110 transition">🥉</div>
+                    <h4 class="font-bold text-xs tracking-widest uppercase">Cobre</h4>
+                    <p class="text-[8px] opacity-20 mt-4">Scanner Ready</p>
+                </div>
+                <div class="glass p-10 text-center cursor-pointer group hover:border-red-500" onclick="scan('PVC', 'ISOLANTE', '#ff0055')">
+                    <div class="text-5xl mb-6 group-hover:scale-110 transition">🥤</div>
+                    <h4 class="font-bold text-xs tracking-widest uppercase">Plástico</h4>
+                    <p class="text-[8px] opacity-20 mt-4">Scanner Ready</p>
+                </div>
+                <div class="glass p-10 text-center cursor-pointer group hover:border-primary" onclick="scan('OURO', 'SUPER CONDUTOR', '#facc15')">
+                    <div class="text-5xl mb-6 group-hover:scale-110 transition">🥇</div>
+                    <h4 class="font-bold text-xs tracking-widest uppercase">Ouro</h4>
+                    <p class="text-[8px] opacity-20 mt-4">Scanner Ready</p>
+                </div>
+            </div>
+            <div id="scan-log" class="mt-16 text-[10px] font-bold tracking-[0.5em] text-primary opacity-0 transition-all uppercase">Iniciando Varredura...</div>
+        </section>
+
+        <!-- 11: SÉRIE VS PARALELO -->
+        <section>
+            <div class="flex flex-col md:flex-row gap-10 w-full max-w-6xl">
+                <div class="flex-1 glass border-l-4 border-l-red-600">
+                    <h3 class="text-xs opacity-40 mb-4 uppercase tracking-widest">Modelo Série</h3>
+                    <h4 class="text-3xl font-bold mb-6">O ELO FRÁGIL</h4>
+                    <p class="opacity-40 leading-loose">Como um pisca-pisca de Natal antigo. Um único caminho. Se uma lâmpada queima, o circuito se abre e <span class="text-white">todas apagam</span>.</p>
+                </div>
+                <div class="flex-1 glass border-l-4 border-l-primary">
+                    <h3 class="text-xs opacity-40 mb-4 uppercase tracking-widest">Modelo Paralelo</h3>
+                    <h4 class="text-3xl font-bold mb-6">REDUNDÂNCIA</h4>
+                    <p class="opacity-40 leading-loose">Como a sua casa. Vários caminhos. Se você apaga a luz do quarto, a da cozinha <span class="text-white">continua acesa</span>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 12: EXP 4: TESTE DE FALHA (IMERSIVO) -->
+        <section>
+            <div class="glass w-full max-w-5xl text-center">
+                <h3 class="text-xs tracking-[1em] mb-12 opacity-30 uppercase">Stress Test // Protocolo de Falha</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="p-10 border border-white/5 rounded-3xl hover:border-red-600 transition group flex flex-col items-center">
+                        <div class="flex gap-2 mb-8" id="s-nodes">
+                            <div class="w-3 h-3 bg-red-500 rounded-full glow-red"></div>
+                            <div class="w-3 h-3 bg-red-500 rounded-full glow-red"></div>
+                            <div class="w-3 h-3 bg-red-500 rounded-full glow-red"></div>
+                        </div>
+                        <button onclick="failSeries()" class="text-[10px] font-bold tracking-widest opacity-40 group-hover:opacity-100 uppercase">Simular Falha Série</button>
+                    </div>
+                    <div class="p-10 border border-white/5 rounded-3xl hover:border-primary transition group flex flex-col items-center">
+                        <div class="flex flex-col gap-2 mb-8" id="p-nodes">
+                            <div class="w-12 h-[2px] bg-primary"></div>
+                            <div class="w-12 h-[2px] bg-primary"></div>
+                            <div class="w-12 h-[2px] bg-primary"></div>
+                        </div>
+                        <button onclick="failParallel()" class="text-[10px] font-bold tracking-widest opacity-40 group-hover:opacity-100 uppercase">Simular Falha Paralelo</button>
+                    </div>
+                </div>
+                <p id="fail-msg" class="mt-12 text-[8px] tracking-[0.5em] opacity-30 uppercase">Monitorando Integridade do Grid</p>
+            </div>
+        </section>
+
+        <!-- 13: CURTO-CIRCUITO (DANGER) -->
+        <section>
+            <div class="text-center max-w-3xl">
+                <h2 class="text-8xl font-black text-red-600 mb-10 tracking-tighter">BOOM!</h2>
+                <h3 class="text-2xl font-bold mb-6 italic">O Curto-Circuito</h3>
+                <p class="text-xl opacity-40 font-light leading-relaxed">
+                    Quando o elétron acha um "atalho" sem obstáculos. A corrente sobe tanto que o calor derrete os fios. É para isso que existem os <span class="text-white">Disjuntores</span>: eles cortam o mal pela raiz.
+                </p>
+            </div>
+        </section>
+
+        <!-- 14: CONCLUSÃO -->
+        <section>
+            <div class="text-center">
+                <h2 class="hero-title opacity-10">THE_END</h2>
+                <div class="mt-20 flex flex-col items-center gap-6">
+                    <div class="h-[1px] w-24 bg-primary"></div>
+                    <p class="text-[10px] tracking-[2em] opacity-40 uppercase">Obrigado pela Atenção</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // 1. VFX CORE (THREE.JS) - IMPACTO VISUAL
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('vfx-canvas').appendChild(renderer.domElement);
+
+        // Geometria de Energia (Icosaedro Tecnológico)
+        const geometry = new THREE.IcosahedronGeometry(15, 0);
+        const wireframe = new THREE.EdgesGeometry(geometry);
+        const material = new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.1 });
+        const core = new THREE.LineSegments(wireframe, material);
+        scene.add(core);
+
+        camera.position.z = 40;
+
+        // Mouse Feedback
+        let mx = 0, my = 0;
+        document.addEventListener('mousemove', e => {
+            mx = (e.clientX - window.innerWidth / 2) * 0.001;
+            my = (e.clientY - window.innerHeight / 2) * 0.001;
+            gsap.to('#cursor', { x: e.clientX, y: e.clientY, duration: 0 });
+            gsap.to('#cursor-ring', { x: e.clientX - 22.5, y: e.clientY - 22.5, duration: 0.15 });
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            core.rotation.y += 0.002;
+            core.rotation.x += (my - core.rotation.x) * 0.05;
+            core.rotation.y += (mx - core.rotation.y) * 0.05;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 2. GSAP SCROLL & DOTS
+        gsap.registerPlugin(ScrollTrigger);
+        const sections = gsap.utils.toArray('section');
+        const navSteps = document.getElementById('navSteps');
+
+        sections.forEach((_, i) => {
+            const step = document.createElement('div');
+            step.className = `nav-step ${i === 0 ? 'active' : ''}`;
+            navSteps.appendChild(step);
+        });
+
+        const steps = gsap.utils.toArray('.nav-step');
+        sections.forEach((section, i) => {
+            ScrollTrigger.create({
+                trigger: section,
+                start: "top center",
+                end: "bottom center",
+                onToggle: self => {
+                    if (self.isActive) {
+                        steps.forEach(s => s.classList.remove('active'));
+                        steps[i].classList.add('active');
+                    }
+                }
+            });
+            gsap.from(section.children, {
+                scrollTrigger: { trigger: section, start: "top 85%" },
+                y: 60, opacity: 0, scale: 0.95, duration: 1.5, stagger: 0.2, ease: "power4.out"
+            });
+        });
+
+        // 3. EXP 1: O CIRCUITO VIVO (PhET Style)
+        let loopOn = false;
+        const electrons = [document.getElementById('e1'), document.getElementById('e2'), document.getElementById('e3')];
+        function toggleLoop() {
+            loopOn = !loopOn;
+            const bulb = document.getElementById('bulb-svg');
+            if(loopOn) {
+                bulb.classList.add('bulb-on');
+                electrons.forEach((e, i) => {
+                    e.style.opacity = 1;
+                    gsap.to(e, {
+                        motionPath: { path: "#circuit-wire", align: "#circuit-wire", alignOrigin: [0.5, 0.5] },
+                        duration: 3, repeat: -1, ease: "none", delay: i * 1
+                    });
+                });
+            } else {
+                bulb.classList.remove('bulb-on');
+                electrons.forEach(e => { e.style.opacity = 0; gsap.killTweensOf(e); });
+            }
+        }
+
+        // 4. EXP 2: LAB OHM (VFX Lab)
+        const vIn = document.getElementById('v-in');
+        const rIn = document.getElementById('r-in');
+        function updateOhm() {
+            const v = vIn.value; const r = rIn.value;
+            const i = (v / r).toFixed(1);
+            document.getElementById('v-val').innerText = v + 'V';
+            document.getElementById('r-val').innerText = r + 'Ω';
+            document.getElementById('i-val').innerText = i;
+            document.getElementById('vfx-glow').style.opacity = i / 6;
+            // O Core 3D reage à corrente!
+            core.material.opacity = 0.1 + (i / 10);
+            core.scale.set(1 + i/20, 1 + i/20, 1 + i/20);
+        }
+        vIn.oninput = updateOhm; rIn.oninput = updateOhm;
+
+        // 5. SCANNER
+        function scan(n, t, c) {
+            const log = document.getElementById('scan-log');
+            log.style.opacity = 1;
+            log.style.color = c;
+            log.innerText = `VARREDURA: ${n} É UM ${t}`;
+            gsap.from(log, { y: 20, opacity: 0, duration: 0.5 });
+        }
+
+        // 6. FAIL TESTS
+        function failSeries() {
+            document.querySelectorAll('#s-nodes div').forEach(d => {
+                d.style.background = '#222';
+                d.style.boxShadow = 'none';
+            });
+            const msg = document.getElementById('fail-msg');
+            msg.innerText = "ERRO: CIRCUITO EM SÉRIE INTERROMPIDO";
+            msg.style.color = "red";
+        }
+        function failParallel() {
+            document.querySelectorAll('#p-nodes div')[1].style.background = '#222';
+            const msg = document.getElementById('fail-msg');
+            msg.innerText = "ALERTA: FALHA NO RAMO // SISTEMA EM REDUNDÂNCIA";
+            msg.style.color = "var(--primary)";
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
